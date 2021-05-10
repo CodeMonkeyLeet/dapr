@@ -3,12 +3,58 @@
 # Licensed under the MIT License.
 # ------------------------------------------------------------
 
-FROM mcr.microsoft.com/vscode/devcontainers/universal:1.3.3-focal
+FROM ubuntu:focal
 
-# Copy custom first notice message.
-COPY first-run-notice.txt /tmp/staging/
-RUN sudo mv -f /tmp/staging/first-run-notice.txt /usr/local/etc/vscode-dev-containers/ \
-    && sudo rm -rf /tmp/staging
+# [Option] Install zsh
+ARG INSTALL_ZSH="true"
+
+# This Dockerfile adds a non-root 'vscode' user with sudo access. However, for Linux,
+# this user's GID/UID must match your local user UID/GID to avoid permission issues
+# with bind mounts. Update USER_UID / USER_GID if yours is not 1000. See
+# https://aka.ms/vscode-remote/containers/non-root-user for details.
+ARG USERNAME=codespace
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+# Configure environment variables and pathing for dev tools.
+# Defaults to bash shell since the Dapr tuto/tmp[rials assume it, but zsh is optionally installed.
+ENV SHELL=/bin/bash \
+    DEBIAN_FRONTEND=noninteractive \
+    NVM_SYMLINK_CURRENT=true \
+    NVM_DIR="/home/${USERNAME}/.nvm" \
+    NVS_HOME="/home/${USERNAME}/.nvs" \
+    NPM_GLOBAL="/home/${USERNAME}/.npm-global" \
+    GO11MODULE=auto \
+    GOROOT="/usr/local/go" \
+    GOPATH="/go" \
+    PATH="${PATH}:${NVM_DIR}/current/bin:${NPM_GLOBAL}/bin:${GOROOT}/bin:${GOPATH}/bin"
+
+# Setup image using library scripts and configure non-root user.
+COPY library-scripts/* first-run-notice.txt /tmp/staging/
+RUN apt-get update \
+    # Restore interactive mode packages
+    && yes | unminimize 2>&1 \
+    && bash /tmp/staging/common-debian.sh "${INSTALL_ZSH}" "${USERNAME}" "${USER_UID}" "${USER_GID}" "true" "true" "true" \
+    && bash /tmp/staging/setup-user.sh "${USERNAME}" "${PATH}" \
+    # Install Moby CLI and Engine
+    && bash /tmp/staging/docker-in-docker-debian.sh "true" "${USERNAME}" "true" \
+    && bash /tmp/staging/kubectl-helm-debian.sh \
+    # Install Go
+    && bash /tmp/staging/go-debian.sh "latest" "${GOROOT}" "${GOPATH}" "${USERNAME}" \
+    # Move first run notice to right spot
+    && mkdir -p /usr/local/etc/vscode-dev-containers/ \
+    && mv -f /tmp/staging/first-run-notice.txt /usr/local/etc/vscode-dev-containers/ \
+    # Clean up staging folder
+    && apt-get autoremove -y && apt-get clean -y && rm -rf /tmp/staging
 
 # Install Dapr CLI
 RUN wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash
+
+# Mount for docker-in-docker
+VOLUME [ "/var/lib/docker" ]
+
+# Initialize Docker/Moby script if needed
+ENTRYPOINT [ "/usr/local/share/docker-init.sh" ]
+CMD [ "sleep", "infinity" ]
+
+USER ${USERNAME}

@@ -15,7 +15,7 @@
 
 		// Enable docker-in-docker configuration
 		"--init",
-		"--privileged",
+		"--privileged"
 	],
 	"settings": {
 		"terminal.integrated.defaultProfile.linux": "bash",
