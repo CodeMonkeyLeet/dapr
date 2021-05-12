@@ -71,6 +71,12 @@ Dapr is flexible in threading and state consistency models. You can leverage mul
 
 See our [Getting Started](https://docs.dapr.io/getting-started/) guide over in our docs.
 
+If you are [signed up](https://github.com/features/codespaces/signup) for the [GitHub Codespaces beta](https://github.com/features/codespaces), you can click on "Code" in this repo and "Open with Codespaces", which will let you get started right away with [`dapr init`](https://docs.dapr.io/getting-started/install-dapr-selfhost/).
+
+![Open with Codespaces](./img/open_with_codespaces.png)
+
+The Codespace will be based off a personal fork of this repo (if you have not already forked this repo, one will be created for you), so feel free to experiment with the [quickstarts](https://docs.dapr.io/getting-started/quickstarts/).
+
 ## Quickstarts and Samples
 
 * See the [quickstarts repository](https://github.com/dapr/quickstarts) for code examples that can help you get started with Dapr.
